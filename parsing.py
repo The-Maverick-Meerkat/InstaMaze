@@ -1,12 +1,14 @@
-from urllib.request import urlopen, Request
-from bs4 import BeautifulSoup
-import ast
-import time
+from urllib.request import urlopen, Request, urlretrieve # for opening URL's, and retrieving image
+from bs4 import BeautifulSoup # optional... might be useless
+import ast # for safe eval
+import time # for delay
 
 # open the page and get the html
 url = "https://www.instagram.com/explore/tags/selfie/"
 req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
 html = urlopen(req).read().decode("utf-8")
+
+# setting a json string to eventually save it to file
 
 # I use beutiful soup, because I think it's faster than treating the html like a string
 # so I 1st narrow down to the script I want, and only then convert it to a string
@@ -34,7 +36,7 @@ x = ast.literal_eval(new_data)
 
 # x is now a list of dictionaries
 for i in x:
-    time.sleep(2)
+    time.sleep(1)
 
     i = dict(i)
     pic_url = "https://www.instagram.com/p/" + str(i['code'])
@@ -57,6 +59,10 @@ for i in x:
     # just another precaution
     time.sleep(0.5)
 
+    # saves the images
+    savename = i['code'] + ".jpg"
+    urlretrieve(i['display_src'], savename)
+
     # open the user page to get # of followers
     user_req = Request(user_url, headers={'User-Agent': 'Mozilla/5.0'})
     user_html = urlopen(user_req).read().decode("utf-8")
@@ -64,8 +70,16 @@ for i in x:
     del4 = "}"
     followers = user_html.split(del3)[1].split(del4)[0]
 
-    print(followers)
 
-    # print(i['code'], i['likes']['count'], i['comments']['count'], i['date'], i['display_src'].split('?')[0])
-    # likes-count gives the count of likes, comments likewise, date gives unix time,
+    # writing to file, file still needs slight modification to work as json
+    # especially remove the " in the beginnning, and add a } at the end ...
+    json_file = "\"" + i['code'] + "\": {" + "\"likes\": " + "\"" +str(i['likes']['count']) + "\"" + ", " + "\"comments\": " + "\"" + str(i['comments']['count']) + "\"" + ", " + "\"followers\": " + "\"" + followers + "\"" + ", " + "\"date\": " + "\"" + str(i['date']) + "\"" + " }, "
+
+    # likes-count gives the count of likes, comments likewise, date gives unix time
     # display_src gives direct link to the image
+    # image will be saved with the name of the code
+
+    with open('data.json', 'a') as outfile:
+        outfile.write(json_file)
+
+
